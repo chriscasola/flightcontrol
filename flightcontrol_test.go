@@ -28,8 +28,8 @@ func newMockJob() *mockJob {
 
 func TestWorker(t *testing.T) {
 	waiter := &sync.WaitGroup{}
-	workerPool := make(chan *Worker)
-	worker := NewWorker(workerPool, waiter)
+	workerPool := make(chan *worker)
+	worker := newWorker(workerPool, waiter)
 	worker.Start()
 
 	job := newMockJob()

@@ -8,16 +8,16 @@ type Job interface {
 }
 
 // Worker can execute jobs
-type Worker struct {
-	WorkerPool chan *Worker
+type worker struct {
+	WorkerPool chan *worker
 	JobChannel chan Job
 	quit       chan bool
 	waiter     *sync.WaitGroup
 }
 
 // NewWorker creates a new worker
-func NewWorker(workerPool chan *Worker, waiter *sync.WaitGroup) *Worker {
-	return &Worker{
+func newWorker(workerPool chan *worker, waiter *sync.WaitGroup) *worker {
+	return &worker{
 		WorkerPool: workerPool,
 		JobChannel: make(chan Job),
 		quit:       make(chan bool),
@@ -26,7 +26,7 @@ func NewWorker(workerPool chan *Worker, waiter *sync.WaitGroup) *Worker {
 }
 
 // Start method starts the run loop for a worker
-func (w *Worker) Start() {
+func (w *worker) Start() {
 	go func() {
 		for {
 			w.WorkerPool <- w
@@ -43,13 +43,13 @@ func (w *Worker) Start() {
 }
 
 // Stop stops the given worker
-func (w *Worker) Stop() {
+func (w *worker) Stop() {
 	w.quit <- true
 }
 
 // Dispatcher spawns workers and coordinates
 type Dispatcher struct {
-	workerPool chan *Worker
+	workerPool chan *worker
 	jobQueue   chan Job
 	stop       chan bool
 	waiter     *sync.WaitGroup
@@ -57,7 +57,7 @@ type Dispatcher struct {
 
 // NewDispatcher creates a dispatcher with the given number of workers
 func NewDispatcher(maxWorkers int, maxJobsInQueue int) *Dispatcher {
-	pool := make(chan *Worker, maxWorkers)
+	pool := make(chan *worker, maxWorkers)
 	jobQueue := make(chan Job, maxJobsInQueue)
 	stop := make(chan bool)
 	return &Dispatcher{workerPool: pool, jobQueue: jobQueue, stop: stop, waiter: &sync.WaitGroup{}}
@@ -66,7 +66,7 @@ func NewDispatcher(maxWorkers int, maxJobsInQueue int) *Dispatcher {
 // Run starts the dispatcher which in turn starts all the workers
 func (d *Dispatcher) Run() {
 	for i := 0; i < cap(d.workerPool); i++ {
-		worker := NewWorker(d.workerPool, d.waiter)
+		worker := newWorker(d.workerPool, d.waiter)
 		worker.Start()
 	}
 
