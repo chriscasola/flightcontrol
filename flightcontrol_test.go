@@ -69,7 +69,7 @@ func TestDispatcher(t *testing.T) {
 		t.Error("Expected job queue to be of size 100")
 	}
 
-	dispatcher.Run()
+	dispatcher.Start()
 	job := newMockJob()
 
 	for i := 0; i < 50; i++ {
@@ -115,7 +115,7 @@ func BenchmarkDispatcher(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		var wg sync.WaitGroup
 		dispatcher := NewDispatcher(4, 100)
-		dispatcher.Run()
+		dispatcher.Start()
 
 		for i := 0; i < 25; i++ {
 			someJob := newExpensiveJob(testFile, &wg)

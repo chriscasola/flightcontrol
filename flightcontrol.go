@@ -7,7 +7,6 @@ type Job interface {
 	Do()
 }
 
-// Worker can execute jobs
 type worker struct {
 	WorkerPool chan *worker
 	JobChannel chan Job
@@ -15,7 +14,6 @@ type worker struct {
 	waiter     *sync.WaitGroup
 }
 
-// NewWorker creates a new worker
 func newWorker(workerPool chan *worker, waiter *sync.WaitGroup) *worker {
 	return &worker{
 		WorkerPool: workerPool,
@@ -25,7 +23,6 @@ func newWorker(workerPool chan *worker, waiter *sync.WaitGroup) *worker {
 	}
 }
 
-// Start method starts the run loop for a worker
 func (w *worker) Start() {
 	go func() {
 		for {
@@ -42,12 +39,11 @@ func (w *worker) Start() {
 	}()
 }
 
-// Stop stops the given worker
 func (w *worker) Stop() {
 	w.quit <- true
 }
 
-// Dispatcher spawns workers and coordinates
+// Dispatcher spawns workers and coordinates jobs
 type Dispatcher struct {
 	workerPool chan *worker
 	jobQueue   chan Job
@@ -55,7 +51,7 @@ type Dispatcher struct {
 	waiter     *sync.WaitGroup
 }
 
-// NewDispatcher creates a dispatcher with the given number of workers
+// NewDispatcher creates a dispatcher with the given number of workers and queue size
 func NewDispatcher(maxWorkers int, maxJobsInQueue int) *Dispatcher {
 	pool := make(chan *worker, maxWorkers)
 	jobQueue := make(chan Job, maxJobsInQueue)
@@ -63,8 +59,8 @@ func NewDispatcher(maxWorkers int, maxJobsInQueue int) *Dispatcher {
 	return &Dispatcher{workerPool: pool, jobQueue: jobQueue, stop: stop, waiter: &sync.WaitGroup{}}
 }
 
-// Run starts the dispatcher which in turn starts all the workers
-func (d *Dispatcher) Run() {
+// Start causes the dispatcher to start assigning jobs to workers
+func (d *Dispatcher) Start() {
 	for i := 0; i < cap(d.workerPool); i++ {
 		worker := newWorker(d.workerPool, d.waiter)
 		worker.Start()
