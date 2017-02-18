@@ -27,8 +27,9 @@ func newMockJob() *mockJob {
 }
 
 func TestWorker(t *testing.T) {
+	waiter := &sync.WaitGroup{}
 	workerPool := make(chan *Worker)
-	worker := NewWorker(workerPool)
+	worker := NewWorker(workerPool, waiter)
 	worker.Start()
 
 	job := newMockJob()
@@ -37,12 +38,14 @@ func TestWorker(t *testing.T) {
 	availableWorker := <-workerPool
 
 	// give the job to the worker
+	waiter.Add(1)
 	availableWorker.JobChannel <- job
 
 	// wait for the worker to finish
 	availableWorker = <-workerPool
 
 	// give the job to the worker
+	waiter.Add(1)
 	availableWorker.JobChannel <- job
 
 	// wait for the worker to finish
@@ -73,7 +76,7 @@ func TestDispatcher(t *testing.T) {
 		dispatcher.QueueJob(job)
 	}
 
-	time.Sleep(200 * time.Millisecond)
+	dispatcher.Flush()
 
 	if job.numDos != 50 {
 		t.Error("Expected 50 jobs to have been run")

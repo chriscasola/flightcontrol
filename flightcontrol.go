@@ -1,5 +1,7 @@
 package flightcontrol
 
+import "sync"
+
 // Job is a job to be run
 type Job interface {
 	Do()
@@ -10,14 +12,16 @@ type Worker struct {
 	WorkerPool chan *Worker
 	JobChannel chan Job
 	quit       chan bool
+	waiter     *sync.WaitGroup
 }
 
 // NewWorker creates a new worker
-func NewWorker(workerPool chan *Worker) *Worker {
+func NewWorker(workerPool chan *Worker, waiter *sync.WaitGroup) *Worker {
 	return &Worker{
 		WorkerPool: workerPool,
 		JobChannel: make(chan Job),
 		quit:       make(chan bool),
+		waiter:     waiter,
 	}
 }
 
@@ -30,6 +34,7 @@ func (w *Worker) Start() {
 			select {
 			case job := <-w.JobChannel:
 				job.Do()
+				w.waiter.Done()
 			case <-w.quit:
 				return
 			}
@@ -47,6 +52,7 @@ type Dispatcher struct {
 	workerPool chan *Worker
 	jobQueue   chan Job
 	stop       chan bool
+	waiter     *sync.WaitGroup
 }
 
 // NewDispatcher creates a dispatcher with the given number of workers
@@ -54,13 +60,13 @@ func NewDispatcher(maxWorkers int, maxJobsInQueue int) *Dispatcher {
 	pool := make(chan *Worker, maxWorkers)
 	jobQueue := make(chan Job, maxJobsInQueue)
 	stop := make(chan bool)
-	return &Dispatcher{workerPool: pool, jobQueue: jobQueue, stop: stop}
+	return &Dispatcher{workerPool: pool, jobQueue: jobQueue, stop: stop, waiter: &sync.WaitGroup{}}
 }
 
 // Run starts the dispatcher which in turn starts all the workers
 func (d *Dispatcher) Run() {
 	for i := 0; i < cap(d.workerPool); i++ {
-		worker := NewWorker(d.workerPool)
+		worker := NewWorker(d.workerPool, d.waiter)
 		worker.Start()
 	}
 
@@ -69,12 +75,18 @@ func (d *Dispatcher) Run() {
 
 // QueueJob tells the dispatcher to schedule a job
 func (d *Dispatcher) QueueJob(j Job) {
+	d.waiter.Add(1)
 	d.jobQueue <- j
 }
 
 // Stop stops the dispatch loop
 func (d *Dispatcher) Stop() {
 	d.stop <- true
+}
+
+// Flush waits for the job queue to become empty
+func (d *Dispatcher) Flush() {
+	d.waiter.Wait()
 }
 
 func (d *Dispatcher) dispatch() {
