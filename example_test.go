@@ -36,6 +36,5 @@ func Example() {
 	fmt.Println(job.num)
 
 	dispatcher.Stop()
-
 	// Output: 50
 }
