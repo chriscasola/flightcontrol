@@ -1,3 +1,4 @@
+// Package flightcontrol implements a job queue and dispatcher
 package flightcontrol
 
 import "sync"

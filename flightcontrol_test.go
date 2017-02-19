@@ -2,7 +2,6 @@ package flightcontrol
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -153,26 +152,4 @@ func BenchmarkJSONParse(b *testing.B) {
 	b.StopTimer()
 
 	os.Remove("test_data_large.json")
-}
-
-func ExampleStart() {
-	dispatcher := NewDispatcher(4, 100)
-
-	dispatcher.Start()
-
-	// add 50 jobs to the queue
-	job := newMockJob()
-	for i := 0; i < 50; i++ {
-		dispatcher.QueueJob(job)
-	}
-
-	// wait for all jobs to finish
-	dispatcher.Flush()
-
-	fmt.Println(job.numDos)
-
-	dispatcher.Stop()
-
-	// Output:
-	// 50
 }
